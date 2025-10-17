@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - CampusConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">CampusConnect</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><span class="user-info"></span></li>
+                <li><a href="#" class="logout-btn">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container dashboard">
+        <div class="dashboard-header">
+            <h1>Student Dashboard</h1>
+            <p>Welcome back, <span class="user-info"></span>!</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number" id="totalRegistrations">0</span>
+                <span>Total Registrations</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="upcomingEvents">0</span>
+                <span>Upcoming Events</span>
+            </div>
+        </div>
+
+        <div class="tabs" style="margin-bottom: 2rem;">
+            <button class="btn btn-primary" onclick="showTab('myRegistrations')">My Registrations</button>
+            <button class="btn btn-secondary" onclick="showTab('upcomingEvents')">Browse Events</button>
+        </div>
+
+        <!-- My Registrations Tab -->
+        <div id="myRegistrationsTab">
+            <h2>My Event Registrations</h2>
+            <div id="registrationsContainer" class="events-grid">
+                <!-- Registrations will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Browse Events Tab -->
+        <div id="upcomingEventsTab" style="display: none;">
+            <div class="filter-bar">
+                <label>Filter by Category:</label>
+                <select id="dashboardCategoryFilter" class="filter-select" onchange="app.loadEvents(this.value)">
+                    <option value="all">All Categories</option>
+                    <option value="technical">Technical</option>
+                    <option value="cultural">Cultural</option>
+                    <option value="sports">Sports</option>
+                    <option value="workshop">Workshop</option>
+                    <option value="seminar">Seminar</option>
+                </select>
+            </div>
+            <div id="dashboardEventsContainer" class="events-grid">
+                <!-- Events will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        function showTab(tabName) {
+            document.getElementById('myRegistrationsTab').style.display = 
+                tabName === 'myRegistrations' ? 'block' : 'none';
+            document.getElementById('upcomingEventsTab').style.display = 
+                tabName === 'upcomingEvents' ? 'block' : 'none';
+        }
+
+        async function loadStudentData() {
+            if (!app.token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                // Load registrations
+                const registrations = await app.apiCall('/my-registrations');
+                displayRegistrations(registrations);
+                
+                // Load events for browsing
+                app.loadEvents();
+                
+                // Update stats
+                document.getElementById('totalRegistrations').textContent = registrations.length;
+                
+            } catch (error) {
+                console.error('Error loading student data:', error);
+            }
+        }
+
+        function displayRegistrations(registrations) {
+    const container = document.getElementById('registrationsContainer');
+    if (!container) return;
+
+    if (registrations.length === 0) {
+        container.innerHTML = '<p class="text-center">You haven\'t registered for any events yet.</p>';
+        return;
+    }
+
+    console.log('Displaying registrations:', registrations); // DEBUG
+
+    container.innerHTML = registrations.map(reg => {
+        // Generate QR code URL
+        const qrCodeUrl = reg.qrCode ? `${API_BASE}/qrcode/${encodeURIComponent(reg.qrCode)}` : '';
+        
+        console.log('Registration QR data:', { 
+            hasQR: !!reg.qrCode, 
+            qrCode: reg.qrCode,
+            qrCodeUrl: qrCodeUrl 
+        }); // DEBUG
+
+        return `
+            <div class="event-card">
+                <div class="event-header">
+                    <span class="event-category">${reg.event.category}</span>
+                    <h3>${reg.event.title}</h3>
+                </div>
+                <div class="event-body">
+                    <div class="event-details">
+                        <div class="event-detail">
+                            <strong>Venue:</strong> ${reg.event.venue}
+                        </div>
+                        <div class="event-detail">
+                            <strong>Date:</strong> ${new Date(reg.event.date).toLocaleDateString()}
+                        </div>
+                        <div class="event-detail">
+                            <strong>Status:</strong> ${reg.attended ? 'Attended' : 'Registered'}
+                        </div>
+                        <div class="event-detail">
+                            <strong>Registration ID:</strong> ${reg._id}
+                        </div>
+                        <div class="event-detail">
+                            <strong>Has QR Code:</strong> ${reg.qrCode ? 'Yes' : 'No'}
+                        </div>
+                    </div>
+                    ${!reg.attended && reg.qrCode ? `
+                        <div class="qr-container">
+                            <p><strong>Your QR Code Ticket:</strong></p>
+                            <img src="${qrCodeUrl}" 
+                                 alt="QR Code for ${reg.event.title}" 
+                                 style="max-width: 200px; border: 2px solid #ddd; padding: 10px; background: white;"
+                                 onload="console.log('QR code loaded successfully')"
+                                 onerror="console.error('QR code failed to load', this.src)">
+                            <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">
+                                Show this QR code at the event venue for entry
+                            </p>
+                            <button onclick="testQRCode('${reg.qrCode}')" class="btn btn-secondary" style="margin-top: 10px;">
+                                Test QR Code
+                            </button>
+                        </div>
+                    ` : ''}
+                    ${!reg.qrCode ? `
+                        <div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0;">
+                            <p style="color: #856404; margin: 0;">
+                                ⚠️ QR code not generated. Please refresh the page or contact support.
+                            </p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Add this test function
+function testQRCode(qrData) {
+    const qrUrl = `${API_BASE}/qrcode/${encodeURIComponent(qrData)}`;
+    console.log('Testing QR URL:', qrUrl);
+    
+    fetch(qrUrl)
+        .then(response => {
+            console.log('QR Test Response:', response.status, response.statusText);
+            if (response.ok) {
+                alert('✅ QR code is working! Check console for details.');
+            } else {
+                alert('❌ QR code failed. Check console for error.');
+            }
+        })
+        .catch(error => {
+            console.error('QR Test Error:', error);
+            alert('❌ QR code test failed: ' + error.message);
+        });
+}
+
+        // Override the displayEvents method for dashboard
+        const originalDisplayEvents = app.displayEvents;
+        app.displayEvents = function(events) {
+            const container = document.getElementById('dashboardEventsContainer');
+            if (container) {
+                // Use the same logic but target dashboard container
+                if (events.length === 0) {
+                    container.innerHTML = '<p class="text-center">No events found.</p>';
+                    return;
+                }
+
+                container.innerHTML = events.map(event => `
+                    <div class="event-card">
+                        <div class="event-header">
+                            <span class="event-category">${event.category}</span>
+                            <h3>${event.title}</h3>
+                        </div>
+                        <div class="event-body">
+                            <p>${event.description}</p>
+                            <div class="event-details">
+                                <div class="event-detail">
+                                    <strong>Venue:</strong> ${event.venue}
+                                </div>
+                                <div class="event-detail">
+                                    <strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="app.registerForEvent('${event._id}')">
+                                Register Now
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                // Fallback to original method
+                originalDisplayEvents.call(this, events);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!app.token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            loadStudentData();
+        });
+    </script>
+</body>
+</html>

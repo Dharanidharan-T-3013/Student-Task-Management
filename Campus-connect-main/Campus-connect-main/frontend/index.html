@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusConnect - College Event Management</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">CampusConnect</div>
+            <ul class="nav-links">
+                <li><a href="index.html" data-page="index">Home</a></li>
+                <li class="non-auth-only"><a href="login.html" data-page="login">Login</a></li>
+                <li class="non-auth-only"><a href="signup.html" data-page="signup">Sign Up</a></li>
+                <li class="auth-only"><a href="student.html" data-page="student">Dashboard</a></li>
+                <li class="auth-only"><a href="#" class="logout-btn">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="hero text-center" style="padding: 4rem 0;">
+            <h1 style="font-size: 3rem; margin-bottom: 1rem;">Welcome to CampusConnect</h1>
+            <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">
+                Your one-stop platform for college events, registrations, and management
+            </p>
+            <div class="non-auth-only">
+                <a href="signup.html" class="btn btn-primary" style="margin-right: 1rem;">Get Started</a>
+                <a href="login.html" class="btn btn-secondary">Login</a>
+            </div>
+        </section>
+
+        <section class="filter-bar">
+            <label>Filter by Category:</label>
+            <select id="categoryFilter" class="filter-select" onchange="app.loadEvents(this.value)">
+                <option value="all">All Categories</option>
+                <option value="technical">Technical</option>
+                <option value="cultural">Cultural</option>
+                <option value="sports">Sports</option>
+                <option value="workshop">Workshop</option>
+                <option value="seminar">Seminar</option>
+            </select>
+        </section>
+
+        <section>
+            <h2 style="margin-bottom: 1rem;">Upcoming Events</h2>
+            <div id="eventsContainer" class="events-grid">
+                <!-- Events will be loaded here -->
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        // Load events when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            app.loadEvents();
+        });
+    </script>
+</body>
+</html>

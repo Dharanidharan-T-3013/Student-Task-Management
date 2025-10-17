@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - CampusConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">CampusConnect</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="signup.html">Sign Up</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="auth-container">
+            <h2 class="text-center">Login to CampusConnect</h2>
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+            <p class="text-center mt-1">
+                Don't have an account? <a href="signup.html">Sign up here</a>
+            </p>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        handleFormSubmit('loginForm', async (data) => {
+            try {
+                const result = await app.apiCall('/login', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+
+                localStorage.setItem('token', result.token);
+                localStorage.setItem('user', JSON.stringify(result.user));
+                app.token = result.token;
+                app.user = result.user;
+                
+                app.showNotification('Login successful!', 'success');
+
+                // Redirect based on role
+                if (result.user.role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else if (result.user.role === 'organizer') {
+                    window.location.href = 'organizer.html';
+                } else {
+                    window.location.href = 'student.html';
+                }
+            } catch (error) {
+                app.showNotification(error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

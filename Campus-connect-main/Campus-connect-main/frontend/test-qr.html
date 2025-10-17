@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Code Test</title>
+</head>
+<body>
+    <h1>QR Code API Test</h1>
+    <button onclick="testQR()">Test QR Code Generation</button>
+    <div id="result"></div>
+
+    <script>
+        async function testQR() {
+            const testData = JSON.stringify({
+                studentId: "test123",
+                eventId: "test456",
+                studentName: "Test Student",
+                eventTitle: "Test Event",
+                timestamp: Date.now()
+            });
+            
+            const qrUrl = `http://localhost:5000/api/qrcode/${encodeURIComponent(testData)}`;
+            console.log('Testing QR URL:', qrUrl);
+            
+            try {
+                const response = await fetch(qrUrl);
+                console.log('QR Response:', response);
+                
+                if (response.ok) {
+                    document.getElementById('result').innerHTML = `
+                        <p style="color: green;">✅ QR Code API is working!</p>
+                        <img src="${qrUrl}" alt="Test QR Code" style="width: 200px; border: 1px solid #ccc;">
+                        <p>URL: ${qrUrl}</p>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <p style="color: red;">❌ QR Code failed: ${response.status} ${response.statusText}</p>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <p style="color: red;">❌ QR Code error: ${error.message}</p>
+                `;
+            }
+        }
+        
+        testQR();
+    </script>
+</body>
+</html>

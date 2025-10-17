@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizer Dashboard - CampusConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">CampusConnect</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><span class="user-info"></span> (Organizer)</li>
+                <li><a href="#" class="logout-btn">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container dashboard">
+        <div class="dashboard-header">
+            <h1>Organizer Dashboard</h1>
+            <p>Manage your events and track registrations</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number" id="totalEvents">0</span>
+                <span>My Events</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="totalRegistrations">0</span>
+                <span>Total Registrations</span>
+            </div>
+        </div>
+
+        <div class="tabs" style="margin-bottom: 2rem;">
+            <button class="btn btn-primary" onclick="showTab('myEvents')">My Events</button>
+            <button class="btn btn-secondary" onclick="showTab('createEvent')">Create Event</button>
+        </div>
+
+        <!-- Create Event Tab -->
+        <div id="createEventTab" style="display: none;">
+            <div class="auth-container">
+                <h2>Create New Event</h2>
+                <form id="createEventForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="title">Event Title</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" name="category" required>
+                            <option value="technical">Technical</option>
+                            <option value="cultural">Cultural</option>
+                            <option value="sports">Sports</option>
+                            <option value="workshop">Workshop</option>
+                            <option value="seminar">Seminar</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="venue">Venue</label>
+                        <input type="text" id="venue" name="venue" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="time">Time</label>
+                        <input type="time" id="time" name="time">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxParticipants">Max Participants (Optional)</label>
+                        <input type="number" id="maxParticipants" name="maxParticipants">
+                    </div>
+                    <div class="form-group">
+                        <label for="rules">Rules (One per line)</label>
+                        <textarea id="rules" name="rules" rows="3" placeholder="Enter rules, one per line"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create Event</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- My Events Tab -->
+        <div id="myEventsTab">
+            <h2>My Events</h2>
+            <div id="organizerEventsContainer">
+                <!-- Events will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        function showTab(tabName) {
+            document.getElementById('createEventTab').style.display = 
+                tabName === 'createEvent' ? 'block' : 'none';
+            document.getElementById('myEventsTab').style.display = 
+                tabName === 'myEvents' ? 'block' : 'none';
+        }
+
+        async function loadOrganizerData() {
+            if (!app.token || (app.user?.role !== 'organizer' && app.user?.role !== 'admin')) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const events = await app.apiCall('/organizer/events');
+                displayOrganizerEvents(events);
+                
+                // Update stats
+                document.getElementById('totalEvents').textContent = events.length;
+                
+                let totalRegistrations = 0;
+                for (let event of events) {
+                    const registrations = await app.apiCall(`/organizer/registrations/${event._id}`);
+                    totalRegistrations += registrations.length;
+                }
+                document.getElementById('totalRegistrations').textContent = totalRegistrations;
+                
+            } catch (error) {
+                console.error('Error loading organizer data:', error);
+            }
+        }
+
+        function displayOrganizerEvents(events) {
+            const container = document.getElementById('organizerEventsContainer');
+            if (!container) return;
+
+            if (events.length === 0) {
+                container.innerHTML = '<p class="text-center">You haven\'t created any events yet.</p>';
+                return;
+            }
+
+            container.innerHTML = events.map(event => `
+                <div class="event-card" style="margin-bottom: 1rem;">
+                    <div class="event-header">
+                        <span class="event-category">${event.category}</span>
+                        <h3>${event.title}</h3>
+                    </div>
+                    <div class="event-body">
+                        <p>${event.description}</p>
+                        <div class="event-details">
+                            <div class="event-detail">
+                                <strong>Venue:</strong> ${event.venue}
+                            </div>
+                            <div class="event-detail">
+                                <strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}
+                            </div>
+                            <div class="event-detail">
+                                <strong>Time:</strong> ${event.time || 'TBA'}
+                            </div>
+                            <div class="event-detail">
+                                <strong>Status:</strong> ${event.status}
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="viewEventRegistrations('${event._id}', '${event.title}')">
+                            View Registrations
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function viewEventRegistrations(eventId, eventTitle) {
+            try {
+                const registrations = await app.apiCall(`/organizer/registrations/${eventId}`);
+                displayRegistrationsModal(registrations, eventTitle);
+            } catch (error) {
+                app.showNotification(error.message, 'error');
+            }
+        }
+
+        function displayRegistrationsModal(registrations, eventTitle) {
+            const modalHtml = `
+                <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
+                    <div style="background: white; padding: 2rem; border-radius: 10px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                        <h3>Registrations for: ${eventTitle}</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <strong>Total Registrations:</strong> ${registrations.length}
+                        </div>
+                        <div>
+                            ${registrations.map(reg => `
+                                <div style="padding: 1rem; border: 1px solid #ddd; border-radius: 5px; margin-bottom: 0.5rem;">
+                                    <strong>${reg.student.name}</strong> (${reg.student.collegeId})<br>
+                                    <small>${reg.student.department} - ${reg.student.year}</small><br>
+                                    <small>Registered: ${new Date(reg.registrationDate).toLocaleDateString()}</small>
+                                    <span style="float: right; color: ${reg.attended ? 'green' : 'orange'};">
+                                        ${reg.attended ? 'Attended' : 'Registered'}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="btn btn-secondary mt-1" onclick="this.parentElement.parentElement.remove()">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        handleFormSubmit('createEventForm', async (data) => {
+            try {
+                // Process rules from textarea
+                if (data.rules) {
+                    data.rules = data.rules.split('\n').filter(rule => rule.trim() !== '');
+                }
+
+                await app.apiCall('/events', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                
+                app.showNotification('Event created successfully!', 'success');
+                document.getElementById('createEventForm').reset();
+                loadOrganizerData();
+                showTab('myEvents');
+            } catch (error) {
+                app.showNotification(error.message, 'error');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!app.token || (app.user?.role !== 'organizer' && app.user?.role !== 'admin')) {
+                window.location.href = 'login.html';
+                return;
+            }
+            loadOrganizerData();
+        });
+    </script>
+</body>
+</html>

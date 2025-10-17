@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - CampusConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav class="container">
+            <div class="logo">CampusConnect</div>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="login.html">Login</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="auth-container">
+            <h2 class="text-center">Join CampusConnect</h2>
+            <form id="signupForm" class="auth-form">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="collegeId">College ID</label>
+                    <input type="text" id="collegeId" name="collegeId" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="student">Student</option>
+                        <option value="organizer">Event Organizer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="department">Department (Optional)</label>
+                    <input type="text" id="department" name="department">
+                </div>
+                <div class="form-group">
+                    <label for="year">Year (Optional)</label>
+                    <input type="text" id="year" name="year" placeholder="e.g., 2nd Year">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Account</button>
+            </form>
+            <p class="text-center mt-1">
+                Already have an account? <a href="login.html">Login here</a>
+            </p>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        handleFormSubmit('signupForm', async (data) => {
+            try {
+                const result = await app.apiCall('/register', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+
+                localStorage.setItem('token', result.token);
+                localStorage.setItem('user', JSON.stringify(result.user));
+                app.token = result.token;
+                app.user = result.user;
+                
+                console.log('User signed up with role:', result.user.role); // Debug log
+                
+                app.showNotification('Account created successfully!', 'success');
+                
+                // FIXED: Redirect based on actual role
+                if (result.user.role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else if (result.user.role === 'organizer') {
+                    window.location.href = 'organizer.html';
+                } else {
+                    window.location.href = 'student.html';
+                }
+                
+            } catch (error) {
+                app.showNotification(error.message, 'error');
+            }
+        });
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('http://localhost:5000/health');
+                const data = await response.json();
+                console.log('✅ Backend connection:', data.status);
+            } catch (error) {
+                console.error('❌ Backend connection failed:', error);
+                alert('⚠️ Backend server is not running. Please start the backend server first.');
+            }
+        });
+    </script>
+</body>
+</html>
